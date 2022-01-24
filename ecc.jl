@@ -3,6 +3,8 @@ import Base.isless
 import Base.isequal
 import Base.+
 import Base.-
+import Base.*
+import Base.^
 
 struct FieldElement
   num::Int64
@@ -33,7 +35,18 @@ function +(fe1::FieldElement, fe2::FieldElement)
 end
 
 function -(fe1::FieldElement, fe2::FieldElement)
-  @assert(fe1.prime == fe2.prime, "Cannot add numbers in diffrent Fields")
+  @assert(fe1.prime == fe2.prime, "Cannot subtract numbers in diffrent Fields")
   num = mod(fe1.num - fe2.num, fe1.prime)
   return FieldElement(num, fe1.prime)
+end
+
+function *(fe1::FieldElement, fe2::FieldElement)
+  @assert(fe1.prime == fe2.prime, "Cannot multiply numbers in diffrent Fields")
+  num = mod(fe1.num * fe2.num, fe1.prime)
+  return FieldElement(num, fe1.prime)
+end
+
+function ^(fe::FieldElement, exp::Int64)
+  num = powermod(fe.num, exp, fe.prime)
+  return FieldElement(num, fe.prime)
 end
