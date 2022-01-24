@@ -5,6 +5,8 @@ import Base.+
 import Base.-
 import Base.*
 import Base.^
+import Base./
+import Base.inv
 
 struct FieldElement
   num::Int64
@@ -21,11 +23,11 @@ function Base.show(io::IO, fe::FieldElement)
 end
 
 function isequal(fe1::FieldElement, fe2::FieldElement)
-  (fe1.num, fe1.prime) == (fe2.num, fe2.prime)
+  return (fe1.num, fe1.prime) == (fe2.num, fe2.prime)
 end
 
 function isless(fe1::FieldElement, fe2::FieldElement)
-  (fe1.num, fe1.prime) < (fe2.num, fe2.prime)
+  return (fe1.num, fe1.prime) < (fe2.num, fe2.prime)
 end
 
 function +(fe1::FieldElement, fe2::FieldElement)
@@ -46,7 +48,14 @@ function *(fe1::FieldElement, fe2::FieldElement)
   return FieldElement(num, fe1.prime)
 end
 
-function ^(fe::FieldElement, exp::Int64)
-  num = powermod(fe.num, exp, fe.prime)
+function ^(fe::FieldElement, exp::Integer)
+  n = mod(exp, fe.prime - 1)
+  num = powermod(fe.num, n, fe.prime)
   return FieldElement(num, fe.prime)
+end
+
+function /(fe1::FieldElement, fe2::FieldElement)
+  @assert(fe1.prime == fe2.prime, "Cannot divide numbers in diffrent Fields")
+  num = mod(fe1.num * powermod(fe2.num, fe1.prime - 2, fe1.prime), fe1.prime)
+  return FieldElement(num, fe1.prime)
 end
