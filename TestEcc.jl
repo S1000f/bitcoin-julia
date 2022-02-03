@@ -24,4 +24,13 @@ end
 @testset "Point: is a point on the secp256k1 curve" begin
   @test_nowarn p1 = Point(-1, -1, 5, 7)
   @test_throws AssertionError p2 = Point(-1, -2, 5, 7)
+
+  # adding Point
+  p3 = Point(-1, -1, 5, 7)
+  p4 = Point(-1, 1, 5, 7)
+  inf = Point(nothing, nothing, 5, 7)
+  @test p3 + inf == p3
+  @test inf + p4 == p4
+  @test p3 + p4 == inf
+
 end

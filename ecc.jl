@@ -63,20 +63,49 @@ function /(fe1::FieldElement, fe2::FieldElement)
   FieldElement(num, fe1.prime)
 end
 
-struct Point
-  x::Integer
-  y::Integer
+IntegerOrNothing = Union{Integer, Nothing}
+
+struct Point{T <: IntegerOrNothing}
+  x::T
+  y::T
   a::Integer
   b::Integer
 
-  function Point(x::Integer, y::Integer, a::Integer, b::Integer)
-    @assert(y^2 == x^3 + a * x + b, "($x, $y) is not on the curve(secp256k1)")
+  function Point{T}(x, y, a, b) where {T <: IntegerOrNothing}
+    if (!isnothing(x) && !isnothing(y))
+      @assert(y^2 == x^3 + a * x + b, "($x, $y) is not on the curve(secp256k1)")
+    end
     new(x, y, a, b)
   end
+  Point(x::T, y::T, a::Integer, b::Integer) where {T <: IntegerOrNothing} = Point{T}(x, y, a, b)
+end
+
+function Base.show(io::IO, p::Point)
+  toString = ""
+  if isnothing(p.x) || isnothing(p.y)
+    toString = "Point(infinity)"
+  else
+    toString = "Point($(p.x), $(p.y))_$(p.a)_$(p.b)"
+  end
+  print(io, toString)
 end
 
 function isequal(p1::Point, p2::Point)
   p1.x == p2.x && p1.y == p2.y && p1.a == p2.a && p1.b == p2.b
+end
+
+function +(p1::Point, p2::Point)
+  @assert(p1.a == p2.a && p1.b == p2.b, "Points $p1, $p2 are not on the same curve")
+
+  if isnothing(p1.x)
+    return p2
+  elseif isnothing(p2.x)
+    return p1
+  end
+
+  if (p1.x == p2.x && p1.y != p2.y)
+    return Point(nothing, nothing, p1.a, p1.b)
+  end
 end
 
 end # module
