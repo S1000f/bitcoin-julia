@@ -63,21 +63,21 @@ function /(fe1::FieldElement, fe2::FieldElement)
   FieldElement(num, fe1.prime)
 end
 
-IntegerOrNothing = Union{Integer, Nothing}
+RealOrNothing = Union{Real, Nothing}
 
-struct Point{T <: IntegerOrNothing}
+struct Point{T <: RealOrNothing}
   x::T
   y::T
   a::Integer
   b::Integer
 
-  function Point{T}(x, y, a, b) where {T <: IntegerOrNothing}
+  function Point{T}(x, y, a, b) where {T <: RealOrNothing}
     if (!isnothing(x) && !isnothing(y))
       @assert(y^2 == x^3 + a * x + b, "($x, $y) is not on the curve(secp256k1)")
     end
     new(x, y, a, b)
   end
-  Point(x::T, y::T, a::Integer, b::Integer) where {T <: IntegerOrNothing} = Point{T}(x, y, a, b)
+  Point(x::T, y::T, a::Integer, b::Integer) where {T <: RealOrNothing} = Point{T}(x, y, a, b)
 end
 
 function Base.show(io::IO, p::Point)
@@ -97,14 +97,34 @@ end
 function +(p1::Point, p2::Point)
   @assert(p1.a == p2.a && p1.b == p2.b, "Points $p1, $p2 are not on the same curve")
 
-  if isnothing(p1.x)
+  p1x = p1.x
+  p1y = p1.y
+  p2x = p2.x
+  p2y = p2.y
+
+  if p1 == p2 && p1y == 0 * p1x
+    return Point(nothing, nothing, p1.a, p1.b)
+  end
+
+  if isnothing(p1x)
     return p2
-  elseif isnothing(p2.x)
+  elseif isnothing(p2x)
     return p1
   end
 
-  if (p1.x == p2.x && p1.y != p2.y)
+  # adding invertibility
+  if p1x == p2x && p1y != p2y
     return Point(nothing, nothing, p1.a, p1.b)
+  elseif p1x == p2x && p1y == p2y
+    s = (3 * p1x^2 + p1.a) / (2 * p1y)
+    p3x = s^2 - 2 * p1x
+    p3y = s * (p1x - p3x) - p1y
+    return Point(p3x, p3y, p1.a, p1.b)
+  elseif p1x != p2x
+    s = (p2y - p1y) / (p2x - p1x)
+    p3x = s^2 - p1x - p2x
+    p3y = s * (p1x - p3x) - p1y
+    return Point(p3x, p3y, p1.a, p1.b)
   end
 end
 

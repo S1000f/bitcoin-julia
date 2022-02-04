@@ -32,5 +32,10 @@ end
   @test p3 + inf == p3
   @test inf + p4 == p4
   @test p3 + p4 == inf
+  p24 = Point(2, 5, 5, 7)
+  p25 = Point(-1, -1, 5, 7)
+  @test p24 + p25 == Point(3.0, -7.0, 5, 7)
+  p26 = Point(-1, -1, 5, 7)
+  println(p26 + p26)
 
 end
