@@ -51,12 +51,19 @@ function *(fe1::FieldElement, fe2::FieldElement)
   FieldElement(num, fe1.prime)
 end
 
+# binary expansion calculating
 function *(scala::Integer, fe::FieldElement)
-  product = FieldElement(0, fe.prime)
-  for i in 1:scala
-    product += fe
+  coef = scala
+  current = fe
+  result = FieldElement(0, fe.prime)
+  while coef > 0
+    if (coef & 1) == true
+      result += current
+    end
+    current += current
+    coef >>= 1
   end
-  product
+  result
 end
 
 function ^(fe::FieldElement, exp::Integer)
