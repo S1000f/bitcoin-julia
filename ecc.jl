@@ -51,6 +51,14 @@ function *(fe1::FieldElement, fe2::FieldElement)
   FieldElement(num, fe1.prime)
 end
 
+function *(scala::Integer, fe::FieldElement)
+  product = FieldElement(0, fe.prime)
+  for i in 1:scala
+    product += fe
+  end
+  product
+end
+
 function ^(fe::FieldElement, exp::Integer)
   n = mod(exp, fe.prime - 1)
   num = powermod(fe.num, n, fe.prime)
@@ -63,21 +71,21 @@ function /(fe1::FieldElement, fe2::FieldElement)
   FieldElement(num, fe1.prime)
 end
 
-RealOrNothing = Union{Real, Nothing}
+Element = Union{FieldElement, Real, Nothing}
 
-struct Point{T <: RealOrNothing}
+struct Point{T, U <: Element}
   x::T
   y::T
-  a::Integer
-  b::Integer
+  a::U
+  b::U
 
-  function Point{T}(x, y, a, b) where {T <: RealOrNothing}
+  function Point{T, U}(x, y, a, b) where {T, U <: Element}
     if (!isnothing(x) && !isnothing(y))
       @assert(y^2 == x^3 + a * x + b, "($x, $y) is not on the curve(secp256k1)")
     end
     new(x, y, a, b)
   end
-  Point(x::T, y::T, a::Integer, b::Integer) where {T <: RealOrNothing} = Point{T}(x, y, a, b)
+  Point(x::T, y::T, a::U, b::U) where {T, U <: Element} = Point{T, U}(x, y, a, b)
 end
 
 function Base.show(io::IO, p::Point)
@@ -126,6 +134,29 @@ function +(p1::Point, p2::Point)
     p3y = s * (p1x - p3x) - p1y
     return Point(p3x, p3y, p1.a, p1.b)
   end
+end
+
+# function *(scala::Integer, p::Point)
+#   product = Point(nothing, nothing, p.a, p.b)
+#   for i in 1:scala
+#     product += p
+#   end
+#   product
+# end
+
+# binary expansion calculating
+function *(scala::Integer, p::Point)
+  coef = scala
+  current = p
+  result = Point(nothing, nothing, p.a, p.b)
+  while coef > 0
+    if (coef & 1) == true
+      result += current
+    end
+    current += current
+    coef >>= 1
+  end
+  result
 end
 
 end # module

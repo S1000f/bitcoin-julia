@@ -35,7 +35,47 @@ end
   p24 = Point(2, 5, 5, 7)
   p25 = Point(-1, -1, 5, 7)
   @test p24 + p25 == Point(3.0, -7.0, 5, 7)
-  p26 = Point(-1, -1, 5, 7)
-  println(p26 + p26)
+end
+
+function testAddingPoints(order, a, b, cases)
+  for (x1, y1, x2, y2, x3, y3) in cases
+    p1 = Point(FieldElement(x1, order), FieldElement(y1, order), a, b)
+    p2 = Point(FieldElement(x2, order), FieldElement(y2, order), a, b)
+    ans = Point(FieldElement(x3, order), FieldElement(y3, order), a, b)
+    @test p1 + p2 == ans
+  end
+end
+
+@testset "test the curve on finite field" begin
+  prime = 223
+  a = FieldElement(0, prime)
+  b = FieldElement(7, prime)
+
+  validPoints = [(192, 105), (17, 56), (1, 193)]
+  invalidPoints = [(200, 119), (42, 99)]
+
+  for (x, y) in validPoints
+    xe = FieldElement(x, prime)
+    ye = FieldElement(y, prime)
+    @test_nowarn Point(xe, ye, a, b)
+  end
+
+  for (x, y) in invalidPoints
+    xe = FieldElement(x, prime)
+    ye = FieldElement(y, prime)
+    @test_throws AssertionError Point(xe, ye, a, b)
+  end
+
+  testAddingPoints(prime, a, b, [(192, 105, 17, 56, 170, 142)])
+  testAddingPoints(prime, a, b, [(170, 142, 60, 139, 220, 181), (47, 71, 17, 56, 215, 68), (143, 98, 76, 66, 47, 71)])
+
+  @test 2 * Point(FieldElement(192, prime), FieldElement(105, prime), a, b) == Point(FieldElement(49, prime), FieldElement(71, prime), a, b)
+  @test 2 * Point(FieldElement(143, prime), FieldElement(98, prime), a, b) == Point(FieldElement(64, prime), FieldElement(168, prime), a, b)
+  @test 2 * Point(FieldElement(47, prime), FieldElement(71, prime), a, b) == Point(FieldElement(36, prime), FieldElement(111, prime), a, b)
+  @test 4 * Point(FieldElement(47, prime), FieldElement(71, prime), a, b) == Point(FieldElement(194, prime), FieldElement(51, prime), a, b)
+  @test 8 * Point(FieldElement(47, prime), FieldElement(71, prime), a, b) == Point(FieldElement(116, prime), FieldElement(55, prime), a, b)
+  @test 21 * Point(FieldElement(47, prime), FieldElement(71, prime), a, b) == Point(nothing, nothing, a, b)
+  @test 7 * Point(FieldElement(15, prime), FieldElement(86, prime), a, b) == Point(nothing, nothing, a, b)
 
 end
+
