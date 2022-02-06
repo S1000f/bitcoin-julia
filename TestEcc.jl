@@ -79,3 +79,32 @@ end
 
 end
 
+@testset "secp256k1 class" begin
+  gx = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
+  gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
+  p = big(2)^256 - big(2)^32 - big(977)
+
+  @test mod(gy^2, p) == mod((gx^3 + 7), p)
+
+  x = FieldElement(gx, p)
+  y = FieldElement(gy, p)
+  zero = FieldElement(0, p)
+  seven = FieldElement(7, p)
+  g = Point(x, y, zero, seven)
+
+  infPoint = Point(nothing, nothing, zero, seven)
+  infS256Point = S256Point(nothing, nothing)
+
+  @test isequal(infPoint, infS256Point)
+  @test infPoint == infS256Point
+  
+  @test isequal(N*g, infPoint)
+  @test isequal(N*g, infS256Point)
+  @test N*g == infPoint
+  @test N*g == infS256Point
+
+  @test isequal(N*G, infPoint)
+  @test isequal(N*G, infS256Point)
+  @test N*G == infPoint
+  @test N*G == infS256Point
+end
