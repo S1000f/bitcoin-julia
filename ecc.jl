@@ -227,6 +227,21 @@ struct S256Point <: AbstactPoint
   end
 end
 
+# binary expansion calculating
+function *(scala, p::S256Point)::AbstactPoint
+  coef = mod(scala, N)
+  current = p
+  result = S256Point(nothing, nothing)
+  while coef > 0
+    if (coef & 1) == true
+      result += current
+    end
+    current += current
+    coef >>= 1
+  end
+  result
+end
+
 const G = S256Point(Gx, Gy)
 
 end # module
