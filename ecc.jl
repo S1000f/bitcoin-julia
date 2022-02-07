@@ -1,6 +1,6 @@
 module Ecc
 
-export FieldElement, Point, N, S256Field, S256Point, G
+export FieldElement, Point, N, S256Field, S256Point, G, Signature, verify
 
 import Base.isless
 import Base.isequal
@@ -135,11 +135,7 @@ end
 
 function +(p1::AbstactPoint, p2::AbstactPoint)::AbstactPoint
   @assert(p1.a == p2.a && p1.b == p2.b, "Points $p1, $p2 are not on the same curve")
-
-  p1x = p1.x
-  p1y = p1.y
-  p2x = p2.x
-  p2y = p2.y
+  p1x, p1y, p2x, p2y = p1.x, p1.y, p2.x, p2.y
 
   if isequal(p1, p2) && isequal(p1y, 0 * p1x)
     return Point(nothing, nothing, p1.a, p1.b)
@@ -214,10 +210,7 @@ struct S256Point <: AbstactPoint
   b::S256Field
 
   function S256Point(x, y)::AbstactPoint
-    gx = x
-    gy = y
-    a = A_S256Field
-    b = B_S256Field
+    gx, gy, a, b = x, y, A_S256Field, B_S256Field
     if (!isnothing(x) && !isnothing(y))
       gx = S256Field(x)
       gy = S256Field(y)
@@ -226,6 +219,8 @@ struct S256Point <: AbstactPoint
     new(gx, gy, a, b)
   end
 end
+
+const G = S256Point(Gx, Gy)
 
 # binary expansion calculating
 function *(scala, p::S256Point)::AbstactPoint
@@ -242,6 +237,23 @@ function *(scala, p::S256Point)::AbstactPoint
   result
 end
 
-const G = S256Point(Gx, Gy)
+struct Signature
+  r::BigInt
+  s::BigInt
+end
+
+function Base.show(io::IO, sig::Signature)
+  print(io, "Signature($(sig.r), $(sig.s))")
+end
+
+function verify(p::S256Point, z::BigInt, sig::Signature)
+  sInv = powermod(sig.s, N - 2, N)
+  u = z * mod(sInv, N)
+  v = sig.r * mod(sInv, N)
+  total = u * G + v * p
+  return total.x.num == sig.r
+end
+
+
 
 end # module
