@@ -2,6 +2,8 @@ module Ecc
 
 export FieldElement, Point, N, S256Field, S256Point, G, Signature, verify
 
+include("Helper.jl");  using .Helper
+
 import Base.isless
 import Base.isequal
 import Base.+
@@ -162,14 +164,6 @@ function +(p1::AbstactPoint, p2::AbstactPoint)::AbstactPoint
     return Point(p3x, p3y, p1.a, p1.b)
   end
 end
-
-# function *(scala::Integer, p::Point)
-#   product = Point(nothing, nothing, p.a, p.b)
-#   for i in 1:scala
-#     product += p
-#   end
-#   product
-# end
 
 # binary expansion calculating
 function *(scala, p::AbstactPoint)::AbstactPoint
