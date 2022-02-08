@@ -1,8 +1,10 @@
 module Ecc
 
-export FieldElement, Point, N, S256Field, S256Point, G, Signature, verify
+export FieldElement, Point, N, S256Field, S256Point, G, Signature, PrivateKey, verify
 
 include("Helper.jl");  using .Helper
+using Random
+using SHA
 
 import Base.isless
 import Base.isequal
@@ -248,6 +250,25 @@ function verify(p::S256Point, z::BigInt, sig::Signature)
   return total.x.num == sig.r
 end
 
+struct PrivateKey
+  secret::BigInt
+  point::S256Point
 
+  function PrivateKey(secret)
+    point = secret * G
+    new(secret, point)
+  end
+end
+
+function sign(pk::PrivateKey, z::BigInt)::Signature
+  k = rand(0:N)
+  r = (k * G).x.num
+  kInv = powermod(k, N - 2, N)
+  s = mod(((z + r * pk.secret) * kInv), N)
+  if s > N / 2
+    s = N - s
+  end
+  Signature(r, s)
+end
 
 end # module

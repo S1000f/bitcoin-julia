@@ -1,4 +1,6 @@
 using Test
+using Random
+using SHA
 include("ecc.jl");  using .Ecc
 include("Helper.jl");  using .Helper
 
@@ -137,5 +139,8 @@ end
   @test z == 0x231c6f3d980a6b0fb7152f85cee7eb52bf92433d9919b9c5218cb08e79cce78
   @test r == 0x2b698a0f0a4041b77e63488ad48c23e8e8838dd1fb7520408b121697b782ef22
   @test s == 0xbb14e602ef9e3f872e25fad328466b34e6734b7a0fcd58b1eb635447ffae8cb9
+
+  kRand = rand(0:N)
+
 
 end
