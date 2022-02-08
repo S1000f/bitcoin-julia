@@ -142,5 +142,23 @@ end
 
   kRand = rand(0:N)
 
+  kk = b"\x00"
+  parsed = parse(UInt8, bytes2hex(kk))
+  arr = Array([parsed, parsed, parsed, parsed])
+  cue = codeunits(big2hex(e))
+
+  println(arr)
+  println(cue)
+
+  for unit in cue
+    push!(arr, unit)
+  end
+
+  println(arr)
+
+  digested = hmac_sha256(collect(codeunits(bytes2hex(b"\x00"))), big2hex(e))
+  digested2 = hmac_sha256(arr, big2hex(e))
+  hmac_sha256(digested, arr)
+
 
 end
