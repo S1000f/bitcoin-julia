@@ -139,26 +139,5 @@ end
   @test z == 0x231c6f3d980a6b0fb7152f85cee7eb52bf92433d9919b9c5218cb08e79cce78
   @test r == 0x2b698a0f0a4041b77e63488ad48c23e8e8838dd1fb7520408b121697b782ef22
   @test s == 0xbb14e602ef9e3f872e25fad328466b34e6734b7a0fcd58b1eb635447ffae8cb9
-
-  kRand = rand(0:N)
-
-  kk = b"\x00"
-  parsed = parse(UInt8, bytes2hex(kk))
-  arr = Array([parsed, parsed, parsed, parsed])
-  cue = codeunits(big2hex(e))
-
-  println(arr)
-  println(cue)
-
-  for unit in cue
-    push!(arr, unit)
-  end
-
-  println(arr)
-
-  digested = hmac_sha256(collect(codeunits(bytes2hex(b"\x00"))), big2hex(e))
-  digested2 = hmac_sha256(arr, big2hex(e))
-  hmac_sha256(digested, arr)
-
-
 end
+

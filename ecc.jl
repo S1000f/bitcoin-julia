@@ -218,21 +218,6 @@ end
 
 const G = S256Point(Gx, Gy)
 
-# binary expansion calculating
-function *(scala, p::S256Point)::AbstactPoint
-  coef = mod(scala, N)
-  current = p
-  result = S256Point(nothing, nothing)
-  while coef > 0
-    if (coef & 1) == true
-      result += current
-    end
-    current += current
-    coef >>= 1
-  end
-  result
-end
-
 struct Signature
   r::BigInt
   s::BigInt
@@ -252,7 +237,7 @@ end
 
 struct PrivateKey
   secret::BigInt
-  point::S256Point
+  point::AbstactPoint
 
   function PrivateKey(secret)
     point = secret * G
@@ -261,7 +246,8 @@ struct PrivateKey
 end
 
 function sign(pk::PrivateKey, z::BigInt)::Signature
-  k = rand(0:N)
+  # k = rand(0:N)
+  k = deterministicK(pk, z)
   r = (k * G).x.num
   kInv = powermod(k, N - 2, N)
   s = mod(((z + r * pk.secret) * kInv), N)
@@ -269,6 +255,51 @@ function sign(pk::PrivateKey, z::BigInt)::Signature
     s = N - s
   end
   Signature(r, s)
+end
+
+# RFC6979
+function deterministicK(pk::PrivateKey, z::BigInt)::BigInt
+  b00 = parse(UInt8, bytes2hex(b"\x00"))
+  b01 = parse(UInt8, bytes2hex(b"\x01"))
+  k = Array([b00])
+  v = Array([b01])
+  for i in 1:31
+    push!(k, b00)
+    push!(v, b01)
+  end
+
+  if z > N
+    z -= N
+  end
+
+  zBytes = codeunits(big2hex(z))
+  secretBytes = codeunits(big2hex(pk.secret))
+
+  vCopy = copy(v)
+  push!(vCopy, b00)
+  append!(vCopy, secretBytes)
+  append!(vCopy, zBytes)
+  k = hmac_sha256(k, vCopy)
+  v = hmac_sha256(k, v)
+
+  vCopy2 = copy(v)
+  push!(vCopy2, b01)
+  append!(vCopy2, secretBytes)
+  append!(vCopy2, zBytes)
+  k = hmac_sha256(k, vCopy2)
+  v = hmac_sha256(k, v)
+
+  while true
+    v = hmac_sha256(k, v)
+    candidate = parse(BigInt, bytes2hex(v), base = 16) 
+    if candidate >= 1 && candidate < N
+      return candidate
+    end
+    vCopy3 = copy(v)
+    push!(vCopy3, b00)
+    k = hmac_sha256(k, vCopy3)
+    v = hmac_sha256(k, v)
+  end
 end
 
 end # module
