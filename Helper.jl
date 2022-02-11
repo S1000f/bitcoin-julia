@@ -48,7 +48,7 @@ function toByteArray(big::BigInt, len::Integer=32; bigEndian::Bool=true)::Vector
   arr[1:min(len, length(arr))]
 end
 
-function append(a::Vector{UInt8}...)
+function append(a::Vector{UInt8}...)::Vector{UInt8}
   arr = (UInt8)[]
   for item in a
     append!(arr, item)

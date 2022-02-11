@@ -1,6 +1,7 @@
 using Test
 using Random
 using SHA
+
 include("ecc.jl");  using .Ecc
 include("Helper.jl");  using .Helper
 
@@ -141,3 +142,40 @@ end
   @test s == 0xbb14e602ef9e3f872e25fad328466b34e6734b7a0fcd58b1eb635447ffae8cb9
 end
 
+@testset "serialization test" begin
+  e1 = 5000
+  e2 = 2018^5
+  e3 = 0xdeadbeef12345
+
+  p1 = e1 * G
+  p2 = e2 * G
+  p3 = e3 * G
+
+  sec1 = serializeBySEC(p1, compressed = false)
+  sec2 = serializeBySEC(p2, compressed = false)
+  sec3 = serializeBySEC(p3, compressed = false)
+
+  ans1 = 0x04ffe558e388852f0120e46af2d1b370f85854a8eb0841811ece0e3e03d282d57c315dc72890a4f10a1481c031b03b351b0dc79901ca18a00cf009dbdb157a1d10
+  ans2 = 0x04027f3da1918455e03c46f659266a1bb5204e959db7364d2f473bdf8f0a13cc9dff87647fd023c13b4a4994f17691895806e1b40b57f4fd22581a4f46851f3b06
+  ans3 = 0x04d90cd625ee87dd38656dd95cf79f65f60f7273b67d3096e68bd81e4f5342691f842efa762fd59961d0e99803c61edba8b3e3f7dc3a341836f97733aebf987121
+
+  @test bytes2big(sec1) == ans1
+  @test bytes2big(sec2) == ans2
+  @test bytes2big(sec3) == ans3
+
+  pk1 = PrivateKey(5001)
+  pk2 = PrivateKey(2019^5)
+  pk3 = PrivateKey(0xdeadbeef54321)
+  pk1sechex = bytes2hex(serializeBySEC(pk1.point))
+  pk2sechex = bytes2hex(serializeBySEC(pk2.point))
+  pk3sechex = bytes2hex(serializeBySEC(pk3.point))
+
+  anspk1 = "0357a4f368868a8a6d572991e484e664810ff14c05c0fa023275251151fe0e53d1"
+  anspk2 = "02933ec2d2b111b92737ec12f1c5d20f3233a0ad21cd8b36d0bca7a0cfa5cb8701"
+  anspk3 = "0296be5b1292f6c856b3c5654e886fc13511462059089cdf9c479623bfcbe77690"
+
+  @test pk1sechex == anspk1
+  @test pk2sechex == anspk2
+  @test pk3sechex == anspk3
+
+end

@@ -1,6 +1,6 @@
 module Ecc
 
-export FieldElement, Point, N, S256Field, S256Point, G, Signature, PrivateKey, verify, signByECDSA, deterministicK
+export AbstractField, AbstractPoint, FieldElement, Point, N, S256Field, S256Point, G, Signature, PrivateKey, verify, signByECDSA, deterministicK, serializeBySEC
 
 include("Helper.jl");  using .Helper
 using Random
@@ -15,6 +15,8 @@ import Base.^
 import Base./
 import Base.inv
 import Base.==
+import Base.sqrt
+import Base.convert
 
 const P = big(2)^256 - big(2)^32 - big(977)
 const A = 0
@@ -92,7 +94,7 @@ function *(scala, f::AbstractField)::AbstractField
   result
 end
 
-function ^(f::AbstractField, exp::Integer)::AbstractField
+function ^(f::AbstractField, exp)::AbstractField
   n = mod(exp, f.prime - 1)
   num = powermod(f.num, n, f.prime)
   FieldElement(num, f.prime)
@@ -197,6 +199,14 @@ function Base.show(io::IO, fe::S256Field)
   print(io, string(fe.num, base = 10, pad = 64))
 end
 
+function convert(::Type{S256Field}, x::FieldElement)
+  S256Field(x.num)
+end
+
+function Base.sqrt(f::S256Field)
+  convert(S256Field, f^convert(BigInt, ((P + 1) / 4)))
+end
+
 const A_S256Field = S256Field(A)
 const B_S256Field = S256Field(B)
 struct S256Point <: AbstactPoint
@@ -282,6 +292,25 @@ function deterministicK(pk::PrivateKey, z::BigInt)::BigInt
     k = hmac_sha256(k, append(v, toByteArray(b"\x00")))
     v = hmac_sha256(k, v)
   end
+end
+
+"""
+returns the binary version of the SEC format
+"""
+function serializeBySEC(p::AbstactPoint; compressed::Bool=true)::Vector{UInt8}
+  xb = toByteArray(p.x.num)
+  if compressed
+    return mod(p.y.num, 2) == 0 ? append(toByteArray(b"\x02"), xb) : append(toByteArray(b"\x03"), xb)
+  else
+    return append(toByteArray(b"\x04"), xb, toByteArray(p.y.num))
+  end
+end
+
+"""
+returns a Point object from a SEC binary (not hexstring)
+"""
+function parseSEC(p::AbstractPoint, sec::Vector{UInt8})
+  
 end
 
 end # module
