@@ -146,11 +146,9 @@ end
   e1 = 5000
   e2 = 2018^5
   e3 = 0xdeadbeef12345
-
   p1 = e1 * G
   p2 = e2 * G
   p3 = e3 * G
-
   sec1 = serializeBySEC(p1, compressed = false)
   sec2 = serializeBySEC(p2, compressed = false)
   sec3 = serializeBySEC(p3, compressed = false)
@@ -166,9 +164,12 @@ end
   pk1 = PrivateKey(5001)
   pk2 = PrivateKey(2019^5)
   pk3 = PrivateKey(0xdeadbeef54321)
-  pk1sechex = bytes2hex(serializeBySEC(pk1.point))
-  pk2sechex = bytes2hex(serializeBySEC(pk2.point))
-  pk3sechex = bytes2hex(serializeBySEC(pk3.point))
+  secpk1 = serializeBySEC(pk1.point)
+  secpk2 = serializeBySEC(pk2.point)
+  secpk3 = serializeBySEC(pk3.point)
+  pk1sechex = bytes2hex(secpk1)
+  pk2sechex = bytes2hex(secpk2)
+  pk3sechex = bytes2hex(secpk3)
 
   anspk1 = "0357a4f368868a8a6d572991e484e664810ff14c05c0fa023275251151fe0e53d1"
   anspk2 = "02933ec2d2b111b92737ec12f1c5d20f3233a0ad21cd8b36d0bca7a0cfa5cb8701"
@@ -177,5 +178,22 @@ end
   @test pk1sechex == anspk1
   @test pk2sechex == anspk2
   @test pk3sechex == anspk3
+
+  p1parsed = parseSEC(sec1)
+  p2parsed = parseSEC(sec2)
+  p3parsed = parseSEC(sec3)
+
+  @test(p1 == p1parsed)
+  @test(isequal(p2, p2parsed))
+  @test(isequal(p3, p3parsed))
+
+  pk1parsed = parseSEC(secpk1)
+  @test pk1.point == pk1parsed
+
+  pk2parsed = parseSEC(secpk2)
+  @test pk2.point == pk2parsed
+
+  pk3parsed = parseSEC(secpk3)
+  @test pk3.point == pk3parsed
 
 end

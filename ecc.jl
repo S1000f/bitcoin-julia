@@ -1,6 +1,6 @@
 module Ecc
 
-export AbstractField, AbstractPoint, FieldElement, Point, N, S256Field, S256Point, G, Signature, PrivateKey, verify, signByECDSA, deterministicK, serializeBySEC
+export AbstractField, AbstractPoint, FieldElement, Point, N, S256Field, S256Point, G, Signature, PrivateKey, verify, signByECDSA, deterministicK, serializeBySEC, parseSEC
 
 include("Helper.jl");  using .Helper
 using Random
@@ -28,7 +28,7 @@ const Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
 abstract type AbstractField
 end
 
-abstract type AbstactPoint
+abstract type AbstractPoint
 end
 
 const BigOrSmall = Union{BigInt, Integer}
@@ -106,13 +106,13 @@ function /(f1::AbstractField, f2::AbstractField)::AbstractField
   FieldElement(num, f1.prime)
 end
 
-struct Point{T, U <: Elements} <: AbstactPoint
+struct Point{T, U <: Elements} <: AbstractPoint
   x::T
   y::T
   a::U
   b::U
 
-  function Point{T, U}(x, y, a, b)::AbstactPoint where {T, U <: Elements}
+  function Point{T, U}(x, y, a, b)::AbstractPoint where {T, U <: Elements}
     if (!isnothing(x) && !isnothing(y))
       @assert(isequal(y^2, x^3 + (a * x) + b), "($x, $y) is not on the curve(secp256k1)")
     end
@@ -121,7 +121,7 @@ struct Point{T, U <: Elements} <: AbstactPoint
   Point(x::T, y::T, a::U, b::U) where {T, U <: Elements} = Point{T, U}(x, y, a, b)
 end
 
-function Base.show(io::IO, p::AbstactPoint)
+function Base.show(io::IO, p::AbstractPoint)
   toString = ""
   if isnothing(p.x) || isnothing(p.y)
     toString = "Point(infinity)"
@@ -131,15 +131,15 @@ function Base.show(io::IO, p::AbstactPoint)
   print(io, toString)
 end
 
-function isequal(p1::AbstactPoint, p2::AbstactPoint)
+function isequal(p1::AbstractPoint, p2::AbstractPoint)
   isequal(p1.x, p2.x) && isequal(p1.y, p2.y) && isequal(p1.a, p2.a) && isequal(p1.b, p2.b)
 end
 
-function ==(p1::AbstactPoint, p2::AbstactPoint)
+function ==(p1::AbstractPoint, p2::AbstractPoint)
   isequal(p1.x, p2.x) && isequal(p1.y, p2.y) && isequal(p1.a, p2.a) && isequal(p1.b, p2.b)
 end
 
-function +(p1::AbstactPoint, p2::AbstactPoint)::AbstactPoint
+function +(p1::AbstractPoint, p2::AbstractPoint)::AbstractPoint
   @assert(p1.a == p2.a && p1.b == p2.b, "Points $p1, $p2 are not on the same curve")
   p1x, p1y, p2x, p2y = p1.x, p1.y, p2.x, p2.y
 
@@ -170,7 +170,7 @@ function +(p1::AbstactPoint, p2::AbstactPoint)::AbstactPoint
 end
 
 # binary expansion calculating
-function *(scala, p::AbstactPoint)::AbstactPoint
+function *(scala, p::AbstractPoint)::AbstractPoint
   coef = scala
   current = p
   result = Point(nothing, nothing, p.a, p.b)
@@ -203,27 +203,35 @@ function convert(::Type{S256Field}, x::FieldElement)
   S256Field(x.num)
 end
 
-function Base.sqrt(f::S256Field)
+function Base.sqrt(f::S256Field)::S256Field
   convert(S256Field, f^convert(BigInt, ((P + 1) / 4)))
 end
 
 const A_S256Field = S256Field(A)
 const B_S256Field = S256Field(B)
-struct S256Point <: AbstactPoint
-  x
-  y
+
+struct S256Point <: AbstractPoint
+  x::Union{S256Field, Nothing}
+  y::Union{S256Field, Nothing}
   a::S256Field
   b::S256Field
 
-  function S256Point(x, y)::AbstactPoint
+  function S256Point(x, y)::AbstractPoint
     gx, gy, a, b = x, y, A_S256Field, B_S256Field
-    if (!isnothing(x) && !isnothing(y))
-      gx = S256Field(x)
-      gy = S256Field(y)
-      @assert(isequal(gy^2, gx^3 + (a * gx) + b), "($x, $y) is not on the curve(secp256k1)")
+
+    if isnothing(x) || isnothing(y)
+      return new(nothing, nothing, a, b)
     end
-    new(gx, gy, a, b)
+
+    gx = isa(x, AbstractField) ? convert(S256Field, x) : S256Field(x)
+    gy = isa(y, AbstractField) ? convert(S256Field, y) : S256Field(y)
+    @assert(isequal(gy^2, gx^3 + (a * gx) + b), "($x, $y) is not on the curve(secp256k1)")
+    return new(gx, gy, a, b)
   end
+end
+
+function convert(::Type{S256Point}, p::Point)
+  S256Point(p.x, p.y)
 end
 
 const G = S256Point(Gx, Gy)
@@ -247,11 +255,10 @@ end
 
 struct PrivateKey
   secret::BigInt
-  point::AbstactPoint
+  point::S256Point
 
   function PrivateKey(secret)
-    point = secret * G
-    new(secret, point)
+    new(secret, convert(S256Point, secret * G))
   end
 end
 
@@ -297,7 +304,7 @@ end
 """
 returns the binary version of the SEC format
 """
-function serializeBySEC(p::AbstactPoint; compressed::Bool=true)::Vector{UInt8}
+function serializeBySEC(p::AbstractPoint; compressed::Bool=true)::Vector{UInt8}
   xb = toByteArray(p.x.num)
   if compressed
     return mod(p.y.num, 2) == 0 ? append(toByteArray(b"\x02"), xb) : append(toByteArray(b"\x03"), xb)
@@ -309,8 +316,23 @@ end
 """
 returns a Point object from a SEC binary (not hexstring)
 """
-function parseSEC(p::AbstractPoint, sec::Vector{UInt8})
+function parseSEC(sec::Vector{UInt8})::S256Point
+  if sec[1] == 4
+    return S256Point(bytes2big(sec[2:33]), bytes2big(sec[34:65]))
+  end
   
+  isEven = sec[1] == 2
+  x = S256Field(bytes2big(sec[2:end]))
+  # right side of the equation y^2 = x^3 + 7
+  alpha = x^3 + S256Field(B)
+  # solve for left side
+  beta = sqrt(convert(S256Field, alpha))
+
+  if isEven
+    return S256Point(x, mod(beta.num, 2) == 0 ? beta : S256Field(P - beta.num))
+  else
+    return S256Point(x, mod(beta.num, 2) == 0 ? S256Field(P - beta.num) : beta)
+  end
 end
 
 end # module
