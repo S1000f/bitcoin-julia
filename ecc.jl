@@ -1,6 +1,7 @@
 module Ecc
 
-export AbstractField, AbstractPoint, FieldElement, Point, N, S256Field, S256Point, G, Signature, PrivateKey, verify, signByECDSA, deterministicK, serializeBySEC, parseSEC
+export AbstractField, AbstractPoint, FieldElement, Point, N, S256Field, S256Point, G, 
+  Signature, PrivateKey, verify, signByECDSA, deterministicK, serializeBySEC, parseSEC, serializeByDER, hash160Point, address, wif
 
 include("Helper.jl");  using .Helper
 using Random
@@ -85,7 +86,7 @@ function *(scala, f::AbstractField)::AbstractField
   current = f
   result = FieldElement(0, f.prime)
   while coef > 0
-    if (coef & 1) == true
+    if coef & 1 > 0
       result += current
     end
     current += current
@@ -175,7 +176,7 @@ function *(scala, p::AbstractPoint)::AbstractPoint
   current = p
   result = Point(nothing, nothing, p.a, p.b)
   while coef > 0
-    if (coef & 1) == true
+    if coef & 1 > 0
       result += current
     end
     current += current
@@ -276,15 +277,15 @@ end
 
 # RFC6979
 function deterministicK(pk::PrivateKey, z::BigInt)::BigInt
-  k = toByteArray(b"\x00", 32)
-  v = toByteArray(b"\x01", 32)
+  k = toByteArray(b"\x00", mul = 32)
+  v = toByteArray(b"\x01", mul = 32)
 
   if z > N
     z -= N
   end
 
-  zBytes = toByteArray(z)
-  secretBytes = toByteArray(pk.secret)
+  zBytes = toByteArray(z, 32)
+  secretBytes = toByteArray(pk.secret, 32)
   k = hmac_sha256(k, append(v, toByteArray(b"\x00"), secretBytes, zBytes))
   v = hmac_sha256(k, v)
   k = hmac_sha256(k, append(v, toByteArray(b"\x01"), secretBytes, zBytes))
@@ -305,11 +306,11 @@ end
 returns the binary version of the SEC format
 """
 function serializeBySEC(p::AbstractPoint; compressed::Bool=true)::Vector{UInt8}
-  xb = toByteArray(p.x.num)
+  xb = toByteArray(p.x.num, 32)
   if compressed
     return mod(p.y.num, 2) == 0 ? append(toByteArray(b"\x02"), xb) : append(toByteArray(b"\x03"), xb)
   else
-    return append(toByteArray(b"\x04"), xb, toByteArray(p.y.num))
+    return append(toByteArray(b"\x04"), xb, toByteArray(p.y.num, 32))
   end
 end
 
@@ -332,6 +333,48 @@ function parseSEC(sec::Vector{UInt8})::S256Point
     return S256Point(x, mod(beta.num, 2) == 0 ? beta : S256Field(P - beta.num))
   else
     return S256Point(x, mod(beta.num, 2) == 0 ? S256Field(P - beta.num) : beta)
+  end
+end
+
+function serializeByDER(sig::Signature)::Vector{UInt8}
+  rbin = toByteArray(sig.r, 32)
+  # remove all null bytes at the beginning
+  rbin = leftStrip(rbin, b"\x00")
+  # if rbin has a high bit, add a \x00
+  if rbin[1] & 0x80 > 0
+    rbin = append(toByteArray(b"\x00"), rbin)
+  end
+  result = append(toByteArray(2), toByteArray(length(rbin)), rbin)
+
+  sbin = toByteArray(sig.s, 32)
+  # remove all null bytes at the beginning
+  sbin = leftStrip(sbin, b"\x00")
+  # if sbin has a high bit, add a \x00
+  if sbin[1] & 0x80 > 0
+    sbin = append(toByteArray(b"\x00"), sbin)
+  end
+  result = append(result, toByteArray(2), toByteArray(length(sbin)), sbin)
+
+  append(toByteArray(0x30), toByteArray(length(result)), result)
+end
+
+function hash160Point(p::S256Point; compressed::Bool=true)
+  hash160(serializeBySEC(p, compressed = compressed))
+end
+
+function address(p::S256Point; compressed::Bool=true, testnet::Bool=false)::String
+  h160 = hash160Point(p, compressed = compressed)
+  prefix = testnet ? 0x6f : b"\x00"
+  base58Checksum(append(toByteArray(prefix), h160))
+end
+
+function wif(pk::PrivateKey; compressed::Bool=true, testnet::Bool=false)::String
+  secretByte = toByteArray(pk.secret, 32)
+  prefix = testnet ? 0xef : 0x80
+  if compressed
+    return base58Checksum(append(toByteArray(prefix), secretByte, toByteArray(b"\x01")))
+  else
+    return base58Checksum(append(toByteArray(prefix), secretByte))
   end
 end
 

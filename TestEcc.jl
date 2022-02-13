@@ -196,4 +196,57 @@ end
   pk3parsed = parseSEC(secpk3)
   @test pk3.point == pk3parsed
 
+  r = 0x37206a0610995c58074999cb9767b87af4c4978db68c06e8e6e81d282047a7c6
+  s = 0x8ca63759c1157ebeaec0d03cecca119fc9a75bf8e6d0fa65c841c8e2738cdaec
+  ans = "3045022037206a0610995c58074999cb9767b87af4c4978db68c06e8e6e81d282047a7c60221008ca63759c1157ebeaec0d03cecca119fc9a75bf8e6d0fa65c841c8e2738cdaec"
+
+  sig = Signature(r, s)
+  der = serializeByDER(sig)
+  @test bytes2hex(der) == ans
+
+  b1 = 0x7c076ff316692a3d7eb3c3bb0f8b1488cf72e1afcd929e29307032997a838a3d
+  b2 = 0xeff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c
+  b3 = 0xc7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6
+
+  ansb1 = "9MA8fRQrT4u8Zj8ZRd6MAiiyaxb2Y1CMpvVkHQu5hVM6"
+  ansb2 = "4fE3H2E6XMp4SsxtwinF7w9a34ooUrwWe4WsW1458Pd"
+  ansb3 = "EQJsjkd6JaGwxrjEhfeqPenqHwrBmPQZjJGNSCHBkcF7"
+
+  @test base58(b1) == ansb1
+  @test base58(b2) == ansb2
+  @test base58(b3) == ansb3
+
+  priv1 = PrivateKey(5002)
+  priv2 = PrivateKey(2020^5)
+  priv3 = PrivateKey(0x12345deadbeef)
+  
+  addr1 = address(priv1.point, compressed = false, testnet = true)
+  addr2 = address(priv2.point, compressed = true, testnet = true)
+  addr3 = address(priv3.point, compressed = true, testnet = false)
+  
+  ansaddr1 = "mmTPbXQFxboEtNRkwfh6K51jvdtHLxGeMA"
+  ansaddr2 = "mopVkxp8UhXqRYbCYJsbeE1h1fiF64jcoH"
+  ansaddr3 = "1F1Pn2y6pDb68E5nYJJeba4TLg2U7B6KF1"
+  
+  @test (addr1 == ansaddr1)
+  @test (addr2 == ansaddr2)
+  @test (addr3 == ansaddr3)
+
+  pv1 = PrivateKey(5003)
+  pv2 = PrivateKey(2021^5)
+  pv3 = PrivateKey(0x54321deadbeef)
+  
+  answif1 = "cMahea7zqjxrtgAbB7LSGbcQUr1uX1ojuat9jZodMN8rFTv2sfUK"
+  answif2 = "91avARGdfge8E4tZfYLoxeJ5sGBdNJQH4kvjpWAxgzczjbCwxic"
+  answif3 = "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgiuQJv1h8Ytr2S53a"
+  
+  @test wif(pv1; testnet = true) == answif1
+  @test wif(pv2; compressed = false, testnet = true) == answif2
+  @test wif(pv3) == answif3
+
+  int266 = 266
+  barr = toByteArray(int266, bigEndian = false)
+  bbb = bytes2big(barr, bigEndian = false)
+  @test (int266 == bbb)
+
 end
