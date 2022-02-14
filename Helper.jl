@@ -35,16 +35,22 @@ function append(args::Vector{UInt8}...)::Vector{UInt8}
 end
 
 function toByteArray(unit::Base.CodeUnits{UInt8, String}; mul::Integer=1)::Vector{UInt8}
+  if unit == b""
+    return b""
+  end
   arr = (UInt8)[]
   parsed = parse(UInt8, bytes2hex(unit))
   for i in 1:mul
     push!(arr, parsed)
   end
-  arr
+  return arr
 end
 
 function toByteArray(hexstring::String, pad::Integer=1; bigEndian::Bool=true)::Vector{UInt8}
   arr = (UInt8)[]
+  if isempty(hexstring)
+    return arr
+  end
   index = length(hexstring)
   while index > 0
     nextIdx = max(index - 1, 1)
@@ -78,6 +84,9 @@ function toByteArray(x::Union{BigInt, Integer}, pad::Integer=1; bigEndian::Bool=
 end
 
 function leftStrip(bytearray::Vector{UInt8}, x::Union{Base.CodeUnits, UInt8})::Vector{UInt8}
+  if x == b""
+    return bytearray
+  end
   arr = (UInt8)[]
   target = isa(x, UInt8) ? x : parse(UInt8, bytes2hex(x))
   isStrip = true
@@ -89,7 +98,7 @@ function leftStrip(bytearray::Vector{UInt8}, x::Union{Base.CodeUnits, UInt8})::V
       isStrip = false
     end
   end
-  arr
+  return arr
 end
 
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
