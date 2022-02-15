@@ -1,6 +1,6 @@
 module Helper
 
-export hash256, hash256toBigInt, big2hex, bytes2big, toByteArray, append, leftStrip, base58, base58Checksum, hash160
+export hash256, hash256toBigInt, int2hex, bytes2big, toByteArray, append, leftStrip, base58, base58Checksum, hash160, decodeVarints, encodeVarints
 
 using SHA
 # https://github.com/JuliaCrypto/Ripemd.jl
@@ -17,8 +17,8 @@ function hash256toBigInt(plain::String)::BigInt
   parse(BigInt, hex, base = 16)
 end
 
-function big2hex(big::BigInt)::String
-  string(big, base = 16)
+function int2hex(x::Integer)::String
+  string(x, base = 16)
 end
 
 function bytes2big(bytes; bigEndian::Bool=true)::BigInt
@@ -78,8 +78,8 @@ function toByteArray(hexstring::String, pad::Integer=1; bigEndian::Bool=true)::V
   end
 end
 
-function toByteArray(x::Union{BigInt, Integer}, pad::Integer=1; bigEndian::Bool=true)::Vector{UInt8}
-  hexstring = isa(x, BigInt) ? big2hex(x) : string(x, base = 16)
+function toByteArray(x::Integer, pad::Integer=1; bigEndian::Bool=true)::Vector{UInt8}
+  hexstring = int2hex(x)
   toByteArray(hexstring, pad, bigEndian = bigEndian)
 end
 
@@ -148,6 +148,37 @@ end
 
 function hash160(s)
   ripemd160(sha256(s))
+end
+
+function decodeVarints(io::IOStream)::BigInt
+  i = read(io, 1)[1]
+  if i == 0xfd
+    # 0xfd means the next two bytes are the number
+    return bytes2big(read(io, 2), bigEndian=false)
+  elseif i == 0xfe
+    # 0xfe means the next four bytes are the number
+    return bytes2big(read(io, 4), bigEndian=false)
+  elseif i == 0xff
+    # 0xff means the next eight bytes are the number
+    return bytes2big(read(io, 8), bigEndian=false)
+  else
+    # anything else is just the integer
+    return BigInt(i)
+  end
+end
+
+function encodeVarints(i::Integer)
+  if i < 0xfd
+    return toByteArray(i)
+  elseif i < 0x10000
+    return append(toByteArray(0xfd), toByteArray(i, 2, bigEndian=false))
+  elseif i < 0x100000000
+    return append(toByteArray(0xfe), toByteArray(i, 4, bigEndian=false))
+  elseif i < 0x10000000000000000
+    return append(toByteArray(0xff), toByteArray(i, 8, bigEndian=false))
+  else
+    ArgumentError("integer too large")
+  end
 end
 
 end # module

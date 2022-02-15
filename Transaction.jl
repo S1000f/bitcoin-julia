@@ -1,6 +1,6 @@
 module Transaction
   
-export Tx, TxIn, TxOut
+export Tx, TxIn, TxOut, id, hash, parseTx
 
 struct TxIn
 end
@@ -32,8 +32,9 @@ function hash(t::Tx)
   
 end
 
-function parse(s::IOStream, io::IOBuffer)
+function parseTx(io::IOStream)
+  serializedVersion = htol(read(io, 4))
+  @show serializedVersion
 end
-
 
 end # module
