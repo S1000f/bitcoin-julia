@@ -2,7 +2,7 @@ using Test
 using Random
 using SHA
 
-include("ecc.jl");  using .Ecc
+include("Ecc.jl");  using .Ecc
 include("Helper.jl");  using .Helper
 
 @testset "FieldElement: finite field and modulo" begin

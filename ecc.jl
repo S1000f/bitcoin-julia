@@ -32,18 +32,17 @@ end
 abstract type AbstractPoint
 end
 
-const BigOrSmall = Union{BigInt, Integer}
 const Elements = Union{AbstractField, BigInt, Real, Nothing}
 
-struct FieldElement{T, U <: BigOrSmall} <: AbstractField
+struct FieldElement{T, U <: Integer} <: AbstractField
   num::T
   prime::U
 
-  function FieldElement{T, U}(num, prime) where {T, U <: BigOrSmall}
+  function FieldElement{T, U}(num, prime) where {T, U <: Integer}
     @assert(0 <= num <= (prime - 1), "Num $num not in a field range from 0 to $(prime - 1)")
     new(num, prime)
   end
-  FieldElement(num::T, prime::U) where {T, U <: BigOrSmall} = FieldElement{T, U}(num, prime)
+  FieldElement(num::T, prime::U) where {T, U <: Integer} = FieldElement{T, U}(num, prime)
 end
 
 function Base.show(io::IO, fe::AbstractField)
@@ -186,10 +185,10 @@ function *(scala, p::AbstractPoint)::AbstractPoint
 end
 
 struct S256Field <: AbstractField
-  num::BigOrSmall
+  num::Integer
   prime::BigInt
 
-  function S256Field(num::BigOrSmall)
+  function S256Field(num::Integer)
     prime = P
     @assert(0 <= num <= (prime - 1), "Num $num not in a field range from 0 to $(prime - 1)")
     new(num, prime)

@@ -42,8 +42,9 @@ using Serialization
   write(fout, b5)
   close(fout)
   @test decodeVarints(open("fout")) == i5
+  rm("fout")
 
-
+  
 
 end
 
