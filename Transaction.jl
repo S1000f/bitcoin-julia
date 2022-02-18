@@ -66,7 +66,7 @@ function hash(t::Tx)
   
 end
 
-function parseTx(io::IOStream)::Tx
+function parseTx(io::IO)::Tx
   serializedVersion = htol(read(io, 4))
   numInputs = decodeVarints(io)
   txIns = (TxIn)[]
@@ -82,7 +82,7 @@ function parseTx(io::IOStream)::Tx
   Tx(bytes2big(serializedVersion), txIns, txOuts, bytes2big(locktime))
 end
 
-function parseTxIn(io::IOStream)::TxIn
+function parseTxIn(io::IO)::TxIn
   prevTx = htol(read(io, 32))
   prevIndex = htol(read(io, 4))
   scriptSig = parseScript(io)
@@ -90,7 +90,7 @@ function parseTxIn(io::IOStream)::TxIn
   TxIn(prevTx, bytes2big(prevIndex), scriptSig, sequence = bytes2big(sequence))
 end
 
-function parseTxOut(io::IOStream)::TxOut
+function parseTxOut(io::IO)::TxOut
   amount = htol(read(io, 8))
   scriptPubKey = parseScript(io)
   TxOut(bytes2big(amount), scriptPubKey)

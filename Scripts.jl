@@ -7,7 +7,7 @@ include("Helper.jl");  using .Helper
 struct Script
 end
 
-function parseScript(io::IOStream)::Script
+function parseScript(io::IO)::Script
   return Script()
 end
 

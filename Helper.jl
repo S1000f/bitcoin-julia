@@ -150,7 +150,7 @@ function hash160(s)
   ripemd160(sha256(s))
 end
 
-function decodeVarints(io::IOStream)::BigInt
+function decodeVarints(io::IO)::BigInt
   i = read(io, 1)[1]
   if i == 0xfd
     # 0xfd means the next two bytes are the number
