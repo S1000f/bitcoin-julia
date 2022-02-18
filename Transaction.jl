@@ -1,6 +1,6 @@
 module Transaction
   
-export Tx, TxIn, TxOut, id, hash, parseTx, parseTxIn, parseTxOut
+export Tx, TxIn, TxOut, id, hash, parseTx, parseTxIn, parseTxOut, serializeTxOut
 
 include("Scripts.jl");  using .Scripts
 include("Helper.jl");  using .Helper
@@ -96,8 +96,32 @@ function parseTxOut(io::IOStream)::TxOut
   TxOut(bytes2big(amount), scriptPubKey)
 end
 
-function serializeTxOut(t::TxOut)
-    
+"""
+returns the byte serialization of the transaction output
+"""
+function serializeTxOut(t::TxOut)::Vector{UInt8}
+  amountBytes = toByteArray(t.amount, 8, bigEndian=false)
+  scriptPubKeyBytes = serializeScriptPubKey(t.scriptPubKey)
+  append(amountBytes, scriptPubKeyBytes)
+end
+
+"""
+returns the byte serialization of the transaction numInputs
+"""
+function serializeTxIn(t::TxIn)::Vector{UInt8}
+  append(reverse(t.prevTx), toByteArray(t.prevIndex, 4, bigEndian=false), serializeScriptSig(t.scriptSig), 
+    toByteArray(t.sequence, 4, bigEndian=false))
+end
+
+"""
+returns the byte serialization of the transaction
+"""
+function serializeTx(t::Tx)::Vector{UInt8}
+  versionBytes = toByteArray(t.version, 4, bigEndian=false)
+  txInNum = encodeVarints(length(t.txIns))
+  
+  for txin in t.txIns
+    serializeTxIn(txin)
 end
 
 end # module
