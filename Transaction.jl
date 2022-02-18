@@ -119,9 +119,19 @@ returns the byte serialization of the transaction
 function serializeTx(t::Tx)::Vector{UInt8}
   versionBytes = toByteArray(t.version, 4, bigEndian=false)
   txInNum = encodeVarints(length(t.txIns))
-  
+  txinsArr = []
   for txin in t.txIns
-    serializeTxIn(txin)
+    push!(txinsArr, serializeTxIn(txin))
+  end
+  txinBytes = append(txinsArr...)
+  txOutNum = encodeVarints(length(t.txOuts))
+  txoutArr = []
+  for txout in t.txOuts
+    push!(txoutArr, serializeTxOut(txout))
+  end
+  txoutBytes = append(txoutArr...)
+  locktimeBytes = toByteArray(t.locktime, 4, bigEndian=false)
+  append(versionBytes, txInNum, txinBytes, txOutNum, txoutBytes, locktimeBytes)
 end
 
 end # module
