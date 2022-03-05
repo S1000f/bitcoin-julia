@@ -4,6 +4,7 @@ export Tx, TxIn, TxOut, id, hash, parseTx, parseTxIn, parseTxOut, serializeTxOut
 
 include("Scripts.jl");  using .Scripts
 include("Helper.jl");  using .Helper
+using HTTP
 
 struct TxIn
   prevTx::Vector{UInt8}
@@ -34,7 +35,7 @@ function Base.show(io::IO, t::TxOut)
   print(io, "$(t.amount):$(t.scriptPubKey)")
 end
 
-struct Tx
+mutable struct Tx
   version::UInt32
   txIns::Vector{TxIn}
   txOuts::Vector{TxOut}
@@ -58,15 +59,7 @@ function Base.show(io::IO, t::Tx)
   print(io, "tx: \nversion: $(t.version)\ntx_ins:\n$(txInString)tx_out:\n$(txOutString)locktime: $(t.locktime)")
 end
 
-function id(t::Tx)
-  
-end
-
-function hash(t::Tx)
-  
-end
-
-function parseTx(io::IO)::Tx
+function parseTx(io::IO; testnet::Bool=false)::Tx
   serializedVersion = htol(read(io, 4))
   numInputs = decodeVarints(io)
   txIns = (TxIn)[]
@@ -79,7 +72,7 @@ function parseTx(io::IO)::Tx
     push!(txOuts, parseTxOut(io))
   end
   locktime = htol(read(io, 4))
-  Tx(bytes2big(serializedVersion), txIns, txOuts, bytes2big(locktime))
+  Tx(bytes2big(serializedVersion), txIns, txOuts, bytes2big(locktime), testnet=testnet)
 end
 
 function parseTxIn(io::IO)::TxIn
@@ -132,6 +125,56 @@ function serializeTx(t::Tx)::Vector{UInt8}
   txoutBytes = append(txoutArr...)
   locktimeBytes = toByteArray(t.locktime, 4, bigEndian=false)
   append(versionBytes, txInNum, txinBytes, txOutNum, txoutBytes, locktimeBytes)
+end
+
+function hash(t::Tx)::Vector{UInt8}
+  reverse(hash256(serializeTx(t)))
+end
+
+function id(t::Tx; with0x::Bool=true)::String
+  bytesArr = hash(t)
+  return with0x ? "0x" * bytes2hex(bytesArr) : bytes2hex(bytesArr)
+end
+
+mutable struct TxFetcher
+  cache::Dict{String, Tx}
+end
+
+function getUrl(testnet::Bool=false)::String
+  if testnet
+    return "http://testnet.programmingbitcoin.com"
+  else
+    return "http://mainnet.programmingbitcoin.com"
+  end
+end
+
+function fetch(t::TxFetcher, txid::String; testnet::Bool=false, fresh::Bool=false)::Tx
+  if fresh
+    url = "$(getUrl(testnet))/tx/$(txid).hex"
+    response::HTTP.Response = HTTP.get(url)
+    try
+      raw = hex2bytes(response.body)
+    catch
+      UndefVarError("unexpected response: $(response.body)")
+    end
+
+    if raw[5] == 0
+      raw = raw[:5] + raw[7:end]
+      tx = parseTx(IOBuffer(raw), testnet=testnet)
+      tx.locktime = bytes2big(reverse(raw[end-3:end]))
+    else
+      tx = parseTx(IOBuffer(raw), testnet=testnet)  
+    end
+
+    if id(tx) != txid
+      AssertionError("not the same id: $(id(tx)) vs $(txid)")
+    end
+
+    t.cache[txid] = tx
+  end
+  
+  t.cache[txid].testnet = testnet
+  return t.cache[txid]
 end
 
 end # module
