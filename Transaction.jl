@@ -149,11 +149,14 @@ function getUrl(testnet::Bool=false)::String
 end
 
 function fetch(t::TxFetcher, txid::String; testnet::Bool=false, fresh::Bool=false)::Tx
-  if fresh
+  if fresh || !(txid in t.cache)
     url = "$(getUrl(testnet))/tx/$(txid).hex"
     response::HTTP.Response = HTTP.get(url)
+    raw = (UInt8)[]
     try
-      raw = hex2bytes(response.body)
+      hex = response.body
+      normalized = hex[1:2] == "0x" ? hex[3:end] : hex
+      raw = hex2bytes(normalized)
     catch
       UndefVarError("unexpected response: $(response.body)")
     end
@@ -172,7 +175,7 @@ function fetch(t::TxFetcher, txid::String; testnet::Bool=false, fresh::Bool=fals
 
     t.cache[txid] = tx
   end
-  
+
   t.cache[txid].testnet = testnet
   return t.cache[txid]
 end
