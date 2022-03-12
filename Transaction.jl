@@ -1,6 +1,7 @@
 module Transaction
   
-export Tx, TxIn, TxOut, id, hash, parseTx, parseTxIn, parseTxOut, serializeTxOut
+export Tx, TxIn, TxOut, id, hash, parseTx, parseTxIn, parseTxOut, serializeTxOut, TxFetcher, fetch, fetchTx, value, 
+scriptPubKey
 
 include("Scripts.jl");  using .Scripts
 include("Helper.jl");  using .Helper
@@ -178,6 +179,22 @@ function fetch(t::TxFetcher, txid::String; testnet::Bool=false, fresh::Bool=fals
 
   t.cache[txid].testnet = testnet
   return t.cache[txid]
+end
+
+function fetchTx(t::TxIn; testnet::Bool=false)::Tx
+  fetch(TxFetcher(Dict()), bytes2hex(t.prevTx), testnet = testnet)
+end
+
+function value(t::TxIn; testnet::Bool=false)::BigInt
+  tx = fetchTx(t, testnet = testnet)
+  txout = tx.txOuts[t.prevIndex + 1]
+  txout.amount
+end
+
+function scriptPubKey(t::TxIn; testnet::Bool=false)::Script
+  tx = fetchTx(t, testnet = testnet)
+  txout = tx.txOuts[t.prevIndex + 1]
+  txout.scriptPubKey
 end
 
 end # module
