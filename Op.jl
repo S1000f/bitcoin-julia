@@ -2,6 +2,8 @@ module Op
 
 export OP_CODE_FUNCTIONS, OP_CODE_NAMES
 
+include("Helper.jl");  using .Helper
+
 OP_CODE_FUNCTIONS = Dict(
   0 => () -> "OP_0",
   76 => () -> "OP_PUSHDATA1",
@@ -42,7 +44,15 @@ OP_CODE_FUNCTIONS = Dict(
   115 => () -> "OP_IFDUP",
   116 => () -> "OP_DEPTH",
   117 => () -> "OP_DROP",
-  118 => () -> "OP_DUP",
+
+  118 => stack -> begin
+    if length(stack) < 1
+      return false
+    end
+    append!(stack, stack[end])
+    return true
+  end,
+
   119 => () -> "OP_NIP",
   120 => () -> "OP_OVER",
   121 => () -> "OP_PICK",
@@ -77,8 +87,25 @@ OP_CODE_FUNCTIONS = Dict(
   166 => () -> "OP_RIPEMD160",
   167 => () -> "OP_SHA1",
   168 => () -> "OP_SHA256",
-  169 => () -> "OP_HASH160",
-  170 => () -> "OP_HASH256",
+
+  169 => stack -> begin
+    if length(stack) < 1
+      return false
+    end
+    element = pop!(stack)
+    append!(stack, hash160(element))
+    return true
+  end,
+  
+  170 => stack -> begin
+    if length(stack) < 1
+      return false
+    end
+    element = pop!(stack)
+    append!(stack, hash256(element))
+    return true
+  end,
+
   171 => () -> "OP_CODESEPARATOR",
   172 => () -> "OP_CHECKSIG",
   173 => () -> "OP_CHECKSIGVERIFY",
