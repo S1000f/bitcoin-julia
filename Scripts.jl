@@ -1,6 +1,6 @@
 module Scripts
 
-export Script, parseScript
+export Script, parseScript, serialize
 
 include("Helper.jl");  using .Helper
 
@@ -20,6 +20,7 @@ function parseScript(s::IO)::Script
     current = read(s, 1)
     count += 1
     currentByte = current[1]
+
     if 1 <= currentByte <= 75
       n = currentByte
       append!(cmds, read(s, n))
@@ -45,14 +46,34 @@ function parseScript(s::IO)::Script
   return Script(cmds)
 end
 
-function serializeScriptSig(s::Script)::Vector{UInt8}
-  # TODO:
-  toByteArray(0x42)
+function rawSerialize(s::Script)::Vector{UInt8}
+  result = (UInt8)[]
+
+  for cmd in s.cmds
+    if cmd isa Integer
+      append!(result, toByteArray(cmd, 1, bigEndian=false))
+    else
+      len = length(cmd)
+      if len < 75
+        append!(result, toByteArray(len, 1, bigEndian=false))
+      elseif 75 < len < 0x100
+        append!(result, toByteArray(76, 1, bigEndian=false), toByteArray(len, 1, bigEndian=false))
+      elseif 0x100 <= len <= 520
+        append!(result, toByteArray(77, 1, bigEndian=false), toByteArray(len, 2, bigEndian=false))
+      else
+        ArgumentError("too long an cmd")
+      end
+      append!(result, cmd)
+    end
+  end
+
+  result
 end
 
-function serializeScriptPubKey(s::Script)::Vector{UInt8}
-  # TODO:
-  toByteArray(0x42)
+function serialize(s::Script)::Vector{UInt8}
+  result = rawSerialize(s)
+  total = length(result)
+  append!(encodeVarints(total), result)
 end
 
 end # module

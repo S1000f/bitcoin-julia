@@ -63,14 +63,6 @@ using Serialization
   b6dbf67d4750b0a56244948a87988ac005a6202000000001976a9143c82d7df364eb6c75be8c80
   df2b3eda8db57397088ac46430600"
 
-txout = open("txout", "w")
-serialize(txout, hex_transaction)
-close(txout)
-txfrom = parseTx(open("txout"))
-
-println(txfrom)
-rm("txout")
-
 end
 
 int255 = 255

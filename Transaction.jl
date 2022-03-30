@@ -95,7 +95,7 @@ returns the byte serialization of the transaction output
 """
 function serializeTxOut(t::TxOut)::Vector{UInt8}
   amountBytes = toByteArray(t.amount, 8, bigEndian=false)
-  scriptPubKeyBytes = serializeScriptPubKey(t.scriptPubKey)
+  scriptPubKeyBytes = serialize(t.scriptPubKey)
   append(amountBytes, scriptPubKeyBytes)
 end
 
@@ -103,7 +103,7 @@ end
 returns the byte serialization of the transaction numInputs
 """
 function serializeTxIn(t::TxIn)::Vector{UInt8}
-  append(reverse(t.prevTx), toByteArray(t.prevIndex, 4, bigEndian=false), serializeScriptSig(t.scriptSig), 
+  append(reverse(t.prevTx), toByteArray(t.prevIndex, 4, bigEndian=false), serialize(t.scriptSig), 
     toByteArray(t.sequence, 4, bigEndian=false))
 end
 

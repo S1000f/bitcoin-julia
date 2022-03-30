@@ -12,3 +12,6 @@ println(s2)
 arr = [0x0a]
 num = arr[1]
 println(typeof(num), " ", num)
+
+i = 3
+println(i isa Integer)
