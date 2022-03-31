@@ -7,6 +7,9 @@ include("Scripts.jl");  using .Scripts
 include("Helper.jl");  using .Helper
 using HTTP
 
+"""
+TxIn stands for 'Transaction Inputs', one of the elements in 'Transaction'. It is not a kind of Transaction.
+"""
 struct TxIn
   prevTx::Vector{UInt8}
   prevIndex::UInt32
@@ -23,6 +26,9 @@ function Base.show(io::IO, t::TxIn)
   print(io, "$(bytes2hex(t.prevTx)):$(t.prevIndex)")  
 end
 
+"""
+TxOut stands for 'Transaction Outputs', one of the elements in 'Transaction'. It is not a kind of Transaction.
+"""
 struct TxOut
   amount::BigInt
   scriptPubKey::Script

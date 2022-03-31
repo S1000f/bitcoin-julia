@@ -4,6 +4,8 @@ export Script, parseScript, serialize
 
 include("Helper.jl");  using .Helper
 
+import Base.+
+
 struct Script
   cmds::Vector{UInt8}
 
@@ -74,6 +76,10 @@ function serialize(s::Script)::Vector{UInt8}
   result = rawSerialize(s)
   total = length(result)
   append!(encodeVarints(total), result)
+end
+
+function +(s1::Script, s2::Script)::Script
+  Script(append(s1.cmds, s2.cmds))
 end
 
 end # module
