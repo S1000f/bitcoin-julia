@@ -45,11 +45,11 @@ OP_CODE_FUNCTIONS = Dict(
   116 => () -> "OP_DEPTH",
   117 => () -> "OP_DROP",
 
-  118 => stack -> begin
+  118 => stack::Vector{Any} -> begin
     if length(stack) < 1
       return false
     end
-    append!(stack, stack[end])
+    push!(stack, stack[end])
     return true
   end,
 
@@ -88,7 +88,7 @@ OP_CODE_FUNCTIONS = Dict(
   167 => () -> "OP_SHA1",
   168 => () -> "OP_SHA256",
 
-  169 => stack -> begin
+  169 => stack::Vector{Any} -> begin
     if length(stack) < 1
       return false
     end
@@ -97,7 +97,7 @@ OP_CODE_FUNCTIONS = Dict(
     return true
   end,
   
-  170 => stack -> begin
+  170 => stack::Vector{Any} -> begin
     if length(stack) < 1
       return false
     end

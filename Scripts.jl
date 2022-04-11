@@ -86,7 +86,7 @@ end
 
 function evaluate(s::Script, z::BigInt)::Bool
   cmds = s.cmds[:]
-  stack = []
+  stack = (Any)[]
   altstack = []
 
   while length(cmds) > 0
@@ -124,9 +124,11 @@ function evaluate(s::Script, z::BigInt)::Bool
     return false
   end
 
-  if isempty(stack)
+  if pop!(stack) == b""
     return false
   end
+
+  return true
 end
 
 end # module
