@@ -93,7 +93,7 @@ OP_CODE_FUNCTIONS = Dict(
       return false
     end
     element = pop!(stack)
-    append!(stack, hash160(element))
+    push!(stack, hash160(element))
     return true
   end,
   
@@ -102,7 +102,7 @@ OP_CODE_FUNCTIONS = Dict(
       return false
     end
     element = pop!(stack)
-    append!(stack, hash256(element))
+    push!(stack, hash256(element))
     return true
   end,
 

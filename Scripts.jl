@@ -1,6 +1,6 @@
 module Scripts
 
-export Script, parseScript, serialize
+export Script, parseScript, serialize, evaluate
 
 include("Helper.jl");  using .Helper
 include("Op.jl");  using .Op
@@ -9,16 +9,34 @@ using Logging
 import Base.+
 
 struct Script
-  cmds::Vector{UInt8}
+  cmds::Vector{Any}
 
   function Script(cmds=nothing)
-    new(cmds === nothing ? (UInt8)[] : cmds)
+    arr = (Any)[]
+    if cmds === nothing
+      return new(arr)
+    end
+    for cmd in cmds
+      push!(arr, cmd)
+    end
+    return new(arr)
   end
+end
+
+function +(s1::Script, s2::Script)::Script
+  arr = (Any)[]
+  for c1 in s1.cmds
+    push!(arr, c1)
+  end
+  for c2 in s2.cmds
+    push!(arr, c2)
+  end
+  Script(arr)
 end
 
 function parseScript(s::IO)::Script
   len = decodeVarints(s)
-  cmds = (UInt8)[]
+  cmds = (Any)[]
   count = 0
   while count < len
     current = read(s, 1)
@@ -27,19 +45,19 @@ function parseScript(s::IO)::Script
 
     if 1 <= currentByte <= 75
       n = currentByte
-      append!(cmds, read(s, n))
+      push!(cmds, read(s, n))
       count += n
     elseif currentByte == 76
       dataLength = bytes2big(read(s, 1); bigEndian=false) 
-      append!(cmds, read(s, dataLength))
+      push!(cmds, read(s, dataLength))
       count += dataLength + 1
     elseif currentByte == 77
       dataLength = bytes2big(read(s, 2); bigEndian=false) 
-      append!(cmds, read(s, dataLength))
+      push!(cmds, read(s, dataLength))
       count += dataLength + 2
     else
       opCode = currentByte
-      append!(cmds, opCode)
+      push!(cmds, opCode)
     end
   end
 
@@ -54,7 +72,7 @@ function rawSerialize(s::Script)::Vector{UInt8}
   result = (UInt8)[]
 
   for cmd in s.cmds
-    if cmd isa Int
+    if cmd isa Integer
       append!(result, toByteArray(cmd, 1, bigEndian=false))
     else
       len = length(cmd)
@@ -80,19 +98,15 @@ function serialize(s::Script)::Vector{UInt8}
   append!(encodeVarints(total), result)
 end
 
-function +(s1::Script, s2::Script)::Script
-  Script(append(s1.cmds, s2.cmds))
-end
-
 function evaluate(s::Script, z::BigInt)::Bool
   cmds = s.cmds[:]
   stack = (Any)[]
   altstack = []
 
   while length(cmds) > 0
-    cmd = pop!(cmds)
+    cmd = popfirst!(cmds)
 
-    if cmd isa Int
+    if cmd isa Integer
         operation = OP_CODE_FUNCTIONS[cmd]
       if cmd in (99, 100)
         if !operation(stack, cmds)
@@ -116,7 +130,7 @@ function evaluate(s::Script, z::BigInt)::Bool
         end
       end
     else
-      append!(stack, cmd)
+      push!(stack, cmd)
     end
   end
 
