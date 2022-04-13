@@ -1,8 +1,64 @@
 module Op
 
-export OP_CODE_FUNCTIONS, OP_CODE_NAMES
+export OP_CODE_FUNCTIONS, OP_CODE_NAMES, encodeNum, decodeNum
 
 include("Helper.jl");  using .Helper
+
+function encodeNum(num::Integer)::Vector{UInt8}
+  if num == 0
+    return b""
+  end
+
+  absNum = abs(num)
+  negative = num < 0
+  result = (UInt8)[]
+
+  while absNum > 0
+    append!(result, (absNum & 0xff))
+    absNum >>= 8
+  end
+
+  if result[end] & 0x80 > 0
+    if negative
+      append!(result, 0x80)
+    else
+      append!(result, 0)
+    end
+  elseif negative
+    result[end] |= 0x80
+  end
+
+  result
+end
+
+function decodeNum(element::Vector{UInt8})::Integer
+  if element == b""
+    return 0
+  end
+
+  bigEndian = reverse(element)
+  negative = false
+  result = 0
+
+  if bigEndian[1] & 0x80 > 0
+    negative = true
+    result = bigEndian[1] & 0x7f
+  else
+    negative = false
+    result = bytes2big(bigEndian[1])
+  end
+
+  for c in bigEndian[2:end]
+    result <<= 8
+    result += c
+  end
+
+  if negative
+    return -result
+  else
+    return result
+  end
+end
 
 OP_CODE_FUNCTIONS = Dict(
   0 => () -> "OP_0",
