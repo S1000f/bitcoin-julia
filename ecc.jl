@@ -357,6 +357,34 @@ function serializeByDER(sig::Signature)::Vector{UInt8}
   append(toByteArray(0x30), toByteArray(length(result)), result)
 end
 
+function parseDER(x::Vector{UInt8})::Signature
+  s = IOBuffer(x)
+  compound = read(s, 1)[1]
+  if compound != 0x30
+    ArgumentError("Bad Signature")
+  end
+  len = read(s, 1)[1]
+  if len + 2 != length(x)
+    ArgumentError("Bad Signature Length")
+  end
+  marker = read(s, 1)[1]
+  if marker != 0x02
+    ArgumentError("Bad Signature")
+  end
+  rlen = read(s, 1)[1]
+  r = bytes2big(read(s, rlen))
+  marker = read(s, 1)[1]
+  if marker != 0x02
+    ArgumentError("Bad signature")
+  end
+  slen = read(s, 1)[1]
+  s = bytes2big(read(s, slen))
+  if length(x) != 6 + rlen + slen
+    ArgumentError("Signature too long")
+  end
+  Signature(r, s)
+end
+
 function hash160Point(p::S256Point; compressed::Bool=true)
   hash160(serializeBySEC(p, compressed = compressed))
 end

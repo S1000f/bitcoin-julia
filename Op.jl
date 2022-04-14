@@ -2,6 +2,7 @@ module Op
 
 export OP_CODE_FUNCTIONS, OP_CODE_NAMES, encodeNum, decodeNum
 
+include("Ecc.jl");  using .Ecc
 include("Helper.jl");  using .Helper
 
 function encodeNum(num::Integer)::Vector{UInt8}
@@ -163,7 +164,16 @@ OP_CODE_FUNCTIONS = Dict(
   end,
 
   171 => () -> "OP_CODESEPARATOR",
-  172 => () -> "OP_CHECKSIG",
+  172 => stack::Vector{Any} -> begin
+    if length(stack) < 2
+      return false
+    end
+    sig = pop!(stack)
+    pubkey = pop!(stack)
+
+
+
+  end,
   173 => () -> "OP_CHECKSIGVERIFY",
   174 => () -> "OP_CHECKMULTISIG",
   175 => () -> "OP_CHECKMULTISIGVERIFY",
