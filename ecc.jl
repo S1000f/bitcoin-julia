@@ -1,7 +1,8 @@
 module Ecc
 
 export AbstractField, AbstractPoint, FieldElement, Point, N, S256Field, S256Point, G, 
-  Signature, PrivateKey, verify, signByECDSA, deterministicK, serializeBySEC, parseSEC, serializeByDER, hash160Point, address, wif
+  Signature, PrivateKey, verify, signByECDSA, deterministicK, serializeBySEC, parseSEC, serializeByDER, parseDER, 
+  hash160Point, address, wif
 
 include("Helper.jl");  using .Helper
 using Random
