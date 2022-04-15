@@ -246,7 +246,7 @@ function Base.show(io::IO, sig::Signature)
   print(io, "Signature($(sig.r), $(sig.s))")
 end
 
-function verify(p::S256Point, z::BigInt, sig::Signature)
+function verify(p::S256Point, z::BigInt, sig::Signature)::Bool
   sInv = powermod(sig.s, N - 2, N)
   u = z * mod(sInv, N)
   v = sig.r * mod(sInv, N)

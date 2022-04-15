@@ -5,6 +5,8 @@ export OP_CODE_FUNCTIONS, OP_CODE_NAMES, encodeNum, decodeNum
 include("Ecc.jl");  using .Ecc
 include("Helper.jl");  using .Helper
 
+using Logging
+
 function encodeNum(num::Integer)::Vector{UInt8}
   if num == 0
     return b""
@@ -164,16 +166,30 @@ OP_CODE_FUNCTIONS = Dict(
   end,
 
   171 => () -> "OP_CODESEPARATOR",
-  172 => stack::Vector{Any} -> begin
+
+  172 => (stack::Vector{Any}, z::BigInt) -> begin
     if length(stack) < 2
       return false
     end
-    sig = pop!(stack)
-    pubkey = pop!(stack)
-
-
-
+    secPubkey = pop!(stack)
+    derSig = pop!(stack)[1:end - 1]
+    point = ""
+    sig = ""
+    try
+      point = parseSEC(secPubkey)
+      sig = parseDER(derSig)
+    catch e
+      @info e
+      return false
+    end
+    if verify(point, z, sig)
+      push!(stack, encodeNum(1))
+    else
+      push!(stack, encodeNum(0))
+    end
+    return true
   end,
+
   173 => () -> "OP_CHECKSIGVERIFY",
   174 => () -> "OP_CHECKMULTISIG",
   175 => () -> "OP_CHECKMULTISIGVERIFY",

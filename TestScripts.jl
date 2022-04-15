@@ -11,3 +11,4 @@ script_sig = Script([sig])
 combined_script = script_sig + script_pubkey
 
 @test evaluate(combined_script, z)
+
