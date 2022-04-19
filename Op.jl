@@ -70,11 +70,19 @@ OP_CODE_FUNCTIONS = Dict(
   78 => () -> "OP_PUSHDATA4",
   79 => () -> "OP_1NEGATE",
   81 => () -> "OP_1",
-  82 => () -> "OP_2",
+  # OP_2
+  82 => stack::Vector{Any} -> begin
+    push!(stack, encodeNum(2))
+    true
+  end,
   83 => () -> "OP_3",
   84 => () -> "OP_4",
   85 => () -> "OP_5",
-  86 => () -> "OP_6",
+  # OP_6
+  86 => stack::Vector{Any} -> begin
+    push!(stack, encodeNum(6))
+    true
+  end,
   87 => () -> "OP_7",
   88 => () -> "OP_8",
   89 => () -> "OP_9",
@@ -90,7 +98,15 @@ OP_CODE_FUNCTIONS = Dict(
   100 => () -> "OP_NOTIF",
   103 => () -> "OP_ELSE",
   104 => () -> "OP_ENDIF",
-  105 => () -> "OP_VERIFY",
+  # OP_VERIFY
+  105 => stack::Vector{Any} -> begin
+    if length(stack) < 1
+      return false
+    end
+    element = pop!(stack)
+    return decodeNum(element) != 0
+  end,
+
   106 => () -> "OP_RETURN",
   107 => () -> "OP_TOALTSTACK",
   108 => () -> "OP_FROMALTSTACK",
@@ -103,7 +119,7 @@ OP_CODE_FUNCTIONS = Dict(
   115 => () -> "OP_IFDUP",
   116 => () -> "OP_DEPTH",
   117 => () -> "OP_DROP",
-
+  # OP_DUP
   118 => stack::Vector{Any} -> begin
     if length(stack) < 1
       return false
@@ -120,17 +136,51 @@ OP_CODE_FUNCTIONS = Dict(
   124 => () -> "OP_SWAP",
   125 => () -> "OP_TUCK",
   130 => () -> "OP_SIZE",
-  135 => () -> "OP_EQUAL",
-  136 => () -> "OP_EQUALVERIFY",
+  # OP_EQUAL
+  135 => stack::Vector{Any} -> begin
+    if length(stack) < 2
+      return false
+    end
+    element1 = pop!(stack)
+    element2 = pop!(stack)
+    if element1 == element2
+      push!(stack, encodeNum(1))
+    else
+      push!(stack, encodeNum(0))
+    end
+    return true
+  end,
+  # OP_EQUALVERIFY
+  136 => stack::Vector{Any} -> begin
+    return OP_CODE_FUNCTIONS[135](stack) && OP_CODE_FUNCTIONS[105](stack)
+  end,
   139 => () -> "OP_1ADD",
   140 => () -> "OP_1SUB",
   143 => () -> "OP_NEGATE",
   144 => () -> "OP_ABS",
   145 => () -> "OP_NOT",
   146 => () -> "OP_0NOTEQUAL",
-  147 => () -> "OP_ADD",
+  # OP_ADD
+  147 => stack::Vector{Any} -> begin
+    if length(stack) < 2
+      return false
+    end
+    num1 = decodeNum(pop!(stack))
+    num2 = decodeNum(pop!(stack))
+    push!(stack, encodeNum(num1 + num2))
+    return true
+  end,
   148 => () -> "OP_SUB",
-  149 => () -> "OP_MUL",
+  # OP_MUL
+  149 => stack::Vector{Any} -> begin
+    if length(stack) < 2
+      return false
+    end    
+    num1 = decodeNum(pop!(stack))
+    num2 = decodeNum(pop!(stack))
+    push!(stack, encodeNum(num1 * num2))
+    return true
+  end,
   154 => () -> "OP_BOOLAND",
   155 => () -> "OP_BOOLOR",
   156 => () -> "OP_NUMEQUAL",
@@ -146,7 +196,7 @@ OP_CODE_FUNCTIONS = Dict(
   166 => () -> "OP_RIPEMD160",
   167 => () -> "OP_SHA1",
   168 => () -> "OP_SHA256",
-
+  # OP_HASH160
   169 => stack::Vector{Any} -> begin
     if length(stack) < 1
       return false
@@ -155,7 +205,7 @@ OP_CODE_FUNCTIONS = Dict(
     push!(stack, hash160(element))
     return true
   end,
-  
+  # OP_HASH256
   170 => stack::Vector{Any} -> begin
     if length(stack) < 1
       return false
@@ -166,8 +216,8 @@ OP_CODE_FUNCTIONS = Dict(
   end,
 
   171 => () -> "OP_CODESEPARATOR",
-
-  172 => (stack::Vector{Any}, z::BigInt) -> begin
+  # OP_CHECKSIG
+  172 => (stack::Vector{Any}, z::Integer) -> begin
     if length(stack) < 2
       return false
     end

@@ -98,7 +98,7 @@ function serialize(s::Script)::Vector{UInt8}
   append!(encodeVarints(total), result)
 end
 
-function evaluate(s::Script, z::BigInt)::Bool
+function evaluate(s::Script, z::Integer)::Bool
   cmds = s.cmds[:]
   stack = (Any)[]
   altstack = []

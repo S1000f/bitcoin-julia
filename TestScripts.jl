@@ -12,3 +12,8 @@ combined_script = script_sig + script_pubkey
 
 @test evaluate(combined_script, z)
 
+s2_pubkey = Script([0x76, 0x76, 0x95, 0x93, 0x56, 0x87])
+s2_sig = Script([0x52])
+c2_script = s2_sig + s2_pubkey
+@test evaluate(c2_script, 0)
+
