@@ -6,6 +6,7 @@ include("Ecc.jl");  using .Ecc
 include("Helper.jl");  using .Helper
 
 using Logging
+using SHA
 
 function encodeNum(num::Integer)::Vector{UInt8}
   if num == 0
@@ -106,12 +107,18 @@ OP_CODE_FUNCTIONS = Dict(
     element = pop!(stack)
     return decodeNum(element) != 0
   end,
-
   106 => () -> "OP_RETURN",
   107 => () -> "OP_TOALTSTACK",
   108 => () -> "OP_FROMALTSTACK",
   109 => () -> "OP_2DROP",
-  110 => () -> "OP_2DUP",
+  # OP_2DUP
+  110 => stack::Vector{Any} -> begin
+    if length(stack) < 2
+      return false
+    end
+    append!(stack, stack[end-1:end])
+    return true
+  end,
   111 => () -> "OP_3DUP",
   112 => () -> "OP_2OVER",
   113 => () -> "OP_2ROT",
@@ -133,7 +140,15 @@ OP_CODE_FUNCTIONS = Dict(
   121 => () -> "OP_PICK",
   122 => () -> "OP_ROLL",
   123 => () -> "OP_ROT",
-  124 => () -> "OP_SWAP",
+  # OP_SWAP
+  124 => stack::Vector{Any} -> begin
+    if length(stack) < 2
+      return false
+    end
+    element = popat!(stack, length(stack) - 1)
+    push!(stack, element)
+    return true
+  end,
   125 => () -> "OP_TUCK",
   130 => () -> "OP_SIZE",
   # OP_EQUAL
@@ -158,7 +173,19 @@ OP_CODE_FUNCTIONS = Dict(
   140 => () -> "OP_1SUB",
   143 => () -> "OP_NEGATE",
   144 => () -> "OP_ABS",
-  145 => () -> "OP_NOT",
+  # OP_NOT
+  145 => stack::Vector{Any} -> begin
+    if length(stack) < 1
+      return false
+    end
+    element = pop!(stack)
+    if decodeNum(element) == 0
+      push!(stack, encodeNum(1))
+    else
+      push!(stack, encodeNum(0))
+    end
+    return true
+  end,
   146 => () -> "OP_0NOTEQUAL",
   # OP_ADD
   147 => stack::Vector{Any} -> begin
@@ -194,7 +221,15 @@ OP_CODE_FUNCTIONS = Dict(
   164 => () -> "OP_MAX",
   165 => () -> "OP_WITHIN",
   166 => () -> "OP_RIPEMD160",
-  167 => () -> "OP_SHA1",
+  # OP_SHA1
+  167 => stack::Vector{Any} -> begin
+    if length(stack) < 1
+      return false
+    end
+    element = pop!(stack)
+    push!(stack, sha1(element))
+    return true
+  end,
   168 => () -> "OP_SHA256",
   # OP_HASH160
   169 => stack::Vector{Any} -> begin

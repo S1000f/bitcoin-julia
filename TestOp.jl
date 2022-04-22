@@ -12,4 +12,12 @@ dn = decodeNum(en)
 
 stack = (Any)[9, 9]
 equalverify = OP_CODE_FUNCTIONS[136]
-@test println(equalverify(stack))
+@test equalverify(stack)
+
+arr = (Any)[0x01, 0x02, 0x03, [0x04, 0x05], [0x43, 0x44]]
+println("original ", arr)
+
+p1 = popat!(arr, length(arr) - 1)
+println(p1)
+push!(arr, p1)
+println(arr)
