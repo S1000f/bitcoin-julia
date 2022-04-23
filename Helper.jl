@@ -1,11 +1,17 @@
 module Helper
 
-export hash256, hash256toBigInt, int2hex, bytes2big, toByteArray, append, leftStrip, base58, base58Checksum, hash160, decodeVarints, encodeVarints
+export hash256, hash256toBigInt, int2hex, bytes2big, toByteArray, append, leftStrip, base58, base58Checksum, hash160, 
+decodeVarints, encodeVarints, SIGHASH_ALL, SIGHASH_NONE, SIGHASH_SINGLE
 
 using SHA
 # https://github.com/JuliaCrypto/Ripemd.jl
 # https://github.com/gdkrmr
 using Ripemd
+
+const SIGHASH_ALL = 1
+const SIGHASH_NONE = 2
+const SIGHASH_SINGLE = 3
+const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 function hash256(plain)
   sha256(sha256(plain))
@@ -17,8 +23,9 @@ function hash256toBigInt(plain::String)::BigInt
   parse(BigInt, hex, base = 16)
 end
 
-function int2hex(x::Integer)::String
-  string(x, base = 16)
+function int2hex(x::Integer; prefix::Bool=false)::String
+  hex = string(x, base = 16)
+  prefix ? "0x" * hex : hex
 end
 
 function bytes2big(bytes; bigEndian::Bool=true)::BigInt
@@ -100,8 +107,6 @@ function leftStrip(bytearray::Vector{UInt8}, x::Union{Base.CodeUnits, UInt8})::V
   end
   return arr
 end
-
-const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 function base58(s::BigInt)::String
   count = 0

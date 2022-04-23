@@ -1,7 +1,7 @@
 module Transaction
   
 export Tx, TxIn, TxOut, id, hash, parseTx, parseTxIn, parseTxOut, serializeTxOut, TxFetcher, fetch, fetchTx, value, 
-scriptPubKey
+scriptPubKey, sigHash, verifyInput
 
 include("Scripts.jl");  using .Scripts
 include("Helper.jl");  using .Helper
@@ -14,9 +14,10 @@ struct TxIn
   prevTx::Vector{UInt8}
   prevIndex::UInt32
   scriptSig::Script
-  sequence::UInt32
+  sequence::Integer
 
-  function TxIn(prevTx::Vector{UInt8}, prevIndex::Integer, scriptSig::Script=nothing; sequence::Integer=0xffffffff)
+  function TxIn(prevTx::Vector{UInt8}, prevIndex::Integer, scriptSig::Union{Script, Nothing}=nothing;
+     sequence::Integer=0xffffffff)
     script = scriptSig === nothing ? Script() : scriptSig
     new(prevTx, prevIndex, script, sequence)
   end
@@ -67,7 +68,7 @@ function Base.show(io::IO, t::Tx)
 end
 
 function parseTx(io::IO; testnet::Bool=false)::Tx
-  serializedVersion = htol(read(io, 4))
+  version = htol(read(io, 4))
   numInputs = decodeVarints(io)
   txIns = (TxIn)[]
   for i in 1:numInputs
@@ -79,7 +80,7 @@ function parseTx(io::IO; testnet::Bool=false)::Tx
     push!(txOuts, parseTxOut(io))
   end
   locktime = htol(read(io, 4))
-  Tx(bytes2big(serializedVersion), txIns, txOuts, bytes2big(locktime), testnet=testnet)
+  Tx(bytes2big(version, bigEndian=false), txIns, txOuts, bytes2big(locktime, bigEndian=false), testnet=testnet)
 end
 
 function parseTxIn(io::IO)::TxIn
@@ -138,9 +139,43 @@ function hash(t::Tx)::Vector{UInt8}
   reverse(hash256(serializeTx(t)))
 end
 
-function id(t::Tx; with0x::Bool=true)::String
+function id(t::Tx; prefix::Bool=true)::String
   bytesArr = hash(t)
-  return with0x ? "0x" * bytes2hex(bytesArr) : bytes2hex(bytesArr)
+  return prefix ? "0x" * bytes2hex(bytesArr) : bytes2hex(bytesArr)
+end
+
+function sigHash(t::Tx, inputIndex::Integer)::BigInt
+  s = toByteArray(t.version, 4, bigEndian=false)
+  append!(s, encodeVarints(length(t.txIns)))
+
+  for (i, txin) in enumerate(t.txIns)
+    if i == inputIndex
+      x = serializeTxIn(TxIn(txin.prevTx[:], txin.prevIndex, scriptPubKey(txin; testnet=t.testnet), sequence=txin.sequence))
+      append!(s, x)
+    else
+      x = serializeTxIn(TxIn(txin.prevTx[:], txin.prevIndex, sequence=txin.sequence))
+      append!(s, x)
+    end
+  end
+
+  append!(s, encodeVarints(length(t.txOuts)))
+
+  for txout in t.txOuts
+    append!(s, serializeTxOut(txout))
+  end
+
+  append!(toByteArray(t.locktime, 4, bigEndian=false))
+  append!(toByteArray(SIGHASH_ALL, 4, bigEndian=false))
+  h256 = hash256(s)
+  return bytes2big(h256)
+end
+
+function verifyInput(t::Tx, inputIndex::Integer)::Bool
+  txin = t.txIns[inputIndex]
+  sPubkey = scriptPubKey(txin, testnet=t.testnet)
+  z = sigHash(t, inputIndex)
+  combined = txin.scriptSig + sPubkey
+  evaluate(combined, z)
 end
 
 mutable struct TxFetcher
@@ -156,7 +191,7 @@ function getUrl(testnet::Bool=false)::String
 end
 
 function fetch(t::TxFetcher, txid::String; testnet::Bool=false, fresh::Bool=false)::Tx
-  if fresh || !(txid in t.cache)
+  if fresh || !(txid in values(t.cache))
     url = "$(getUrl(testnet))/tx/$(txid).hex"
     response::HTTP.Response = HTTP.get(url)
     raw = (UInt8)[]
@@ -188,7 +223,7 @@ function fetch(t::TxFetcher, txid::String; testnet::Bool=false, fresh::Bool=fals
 end
 
 function fetchTx(t::TxIn; testnet::Bool=false)::Tx
-  fetch(TxFetcher(Dict()), bytes2hex(t.prevTx), testnet = testnet)
+  fetch(TxFetcher(Dict()), bytes2hex(t.prevTx), testnet=testnet)
 end
 
 function value(t::TxIn; testnet::Bool=false)::BigInt
@@ -198,7 +233,7 @@ function value(t::TxIn; testnet::Bool=false)::BigInt
 end
 
 function scriptPubKey(t::TxIn; testnet::Bool=false)::Script
-  tx = fetchTx(t, testnet = testnet)
+  tx = fetchTx(t, testnet=testnet)
   txout = tx.txOuts[t.prevIndex + 1]
   txout.scriptPubKey
 end

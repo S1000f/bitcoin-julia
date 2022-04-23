@@ -65,7 +65,15 @@ using Serialization
 
 end
 
-int255 = 255
-big255 = BigInt(int255)
-integer255 = convert(Integer, int255)
-big2int = convert(UInt8, big255)
+@testset "verify a transaction" begin
+  hex = "0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000001976a914a802fc56c704ce87c42d7c92eb75e7896bdc41ae88acfeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac1943060001000000"
+  modifiedTx = hex2bytes(hex)
+  tx = parseTx(IOBuffer(modifiedTx))
+
+  h256 = hash256(modifiedTx)
+  z = bytes2big(h256)
+  
+  @test z == 0x27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6
+  @test int2hex(z; prefix=true) == "0x27e0c5994dec7824e56dec6b2fcb342eb7cdb0d0957c2fce9882f715e85d81a6"
+
+end
