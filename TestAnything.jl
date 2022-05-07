@@ -1,12 +1,17 @@
-arr = [0x0a, 0x01, 0x02]
-io = IOBuffer(arr)
-r1 = read(io, 1)
-println(r1)
-n = r1[1]
-println(n)
-println(n == 0x0a)
+using Test
 
-arr1 = [0x01, 0x02]
-arr2 = [0xaa, 0xbb]
-arr3 = arr1 + arr2
-println(arr3)
+include("Op.jl");  using .Op
+include("Scripts.jl");  using .Scripts
+include("Helper.jl");  using .Helper
+
+s = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+c = 'A'
+a = "A"
+
+f = first(findfirst(a, s))
+println(typeof(f))
+println(f - 1)
+
+ba = (UInt8)[0x00, 0x01, 0x02, 0x03, 0x04, 0x05]
+println(ba[end-3:end])
+println(ba[1:end-4])

@@ -1,7 +1,7 @@
 module Helper
 
 export hash256, hash256toBigInt, int2hex, bytes2big, toByteArray, append, leftStrip, base58, base58Checksum, hash160, 
-decodeVarints, encodeVarints, SIGHASH_ALL, SIGHASH_NONE, SIGHASH_SINGLE
+decodeVarints, encodeVarints, SIGHASH_ALL, SIGHASH_NONE, SIGHASH_SINGLE, decodeBase58
 
 using SHA
 # https://github.com/JuliaCrypto/Ripemd.jl
@@ -149,6 +149,22 @@ end
 
 function base58Checksum(b::Vector{UInt8})::String
   base58(append(b, hash256(b)[1:4]))
+end
+
+function decodeBase58(s::String)
+  num::BigInt = 0
+  
+  for c in s
+    num *= 58
+    num += (first(findfirst(c, BASE58_ALPHABET)) - 1)
+  end
+
+  combined = toByteArray(num, 25)
+  checksum = base58Checksum(combined[end-3:end])
+  if hash256(combined[1:end-4])[1:4] != checksum
+    ArgumentError("bad address") 
+  end
+  combined[2:end-4]
 end
 
 function hash160(s)

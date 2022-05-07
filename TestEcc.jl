@@ -250,3 +250,22 @@ end
   @test (int266 == bbb)
 
 end
+
+@testset "decoding base58 address" begin
+  b1 = 0x7c076ff316692a3d7eb3c3bb0f8b1488cf72e1afcd929e29307032997a838a3d
+  b2 = 0xeff69ef2b1bd93a66ed5219add4fb51e11a840f404876325a1e8ffe0529a2c
+  b3 = 0xc7207fee197d27c618aea621406f6bf5ef6fca38681d82b2f06fddbdce6feab6
+
+  ansb1 = "9MA8fRQrT4u8Zj8ZRd6MAiiyaxb2Y1CMpvVkHQu5hVM6"
+  ansb2 = "4fE3H2E6XMp4SsxtwinF7w9a34ooUrwWe4WsW1458Pd"
+  ansb3 = "EQJsjkd6JaGwxrjEhfeqPenqHwrBmPQZjJGNSCHBkcF7"
+
+  @test base58(b1) == ansb1
+  @test base58(b2) == ansb2
+  @test base58(b3) == ansb3
+
+  @test toByteArray(b1)[2:end-4] == decodeBase58(ansb1)
+  @test toByteArray(b2)[2:end-4] == decodeBase58(ansb2)
+  @test toByteArray(b3)[2:end-4] == decodeBase58(ansb3)
+
+end
